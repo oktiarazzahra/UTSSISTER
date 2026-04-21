@@ -6,7 +6,7 @@ from typing import Any
 
 import aiosqlite
 
-DB_PATH = "/app/data/dedup.db"
+DB_PATH = os.getenv("DEDUP_DB_PATH", "/tmp/dedup.db")
 
 
 class DedupStore:
@@ -14,8 +14,13 @@ class DedupStore:
         self.db_path = db_path
         self._lock = asyncio.Lock()
 
+    def _ensure_db_dir(self) -> None:
+        db_dir = os.path.dirname(self.db_path)
+        if db_dir:
+            os.makedirs(db_dir, exist_ok=True)
+
     async def init(self) -> None:
-        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        self._ensure_db_dir()
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute(
                 """
@@ -33,6 +38,7 @@ class DedupStore:
             await db.commit()
 
     async def is_duplicate(self, topic: str, event_id: str) -> bool:
+        self._ensure_db_dir()
         async with aiosqlite.connect(self.db_path) as db:
             cursor = await db.execute(
                 "SELECT 1 FROM processed_events WHERE topic=? AND event_id=?",
@@ -45,6 +51,7 @@ class DedupStore:
         """Return True jika berhasil insert (bukan duplikat), False jika duplikat."""
         async with self._lock:
             try:
+                self._ensure_db_dir()
                 async with aiosqlite.connect(self.db_path) as db:
                     await db.execute(
                         """
@@ -67,6 +74,7 @@ class DedupStore:
                 return False
 
     async def get_events(self, topic: str | None = None) -> list[dict[str, Any]]:
+        self._ensure_db_dir()
         async with aiosqlite.connect(self.db_path) as db:
             if topic:
                 cursor = await db.execute(
