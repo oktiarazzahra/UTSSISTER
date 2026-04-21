@@ -43,6 +43,15 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Pub-Sub Log Aggregator", lifespan=lifespan)
 
 
+@app.get("/")
+async def root():
+    return {
+        "service": "Pub-Sub Log Aggregator",
+        "status": "running",
+        "endpoints": ["/publish", "/events", "/stats", "/health", "/docs"],
+    }
+
+
 @app.post("/publish")
 async def publish(events: Union[Event, list[Event]]):
     if isinstance(events, Event):
