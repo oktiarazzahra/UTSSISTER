@@ -1,0 +1,24 @@
+services:
+  aggregator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: uts-aggregator:latest
+    container_name: uts-aggregator
+    ports:
+      - "8080:8080"
+    volumes:
+      - aggregator-data:/app/data
+    restart: unless-stopped
+
+  publisher:
+    image: curlimages/curl:8.7.1
+    container_name: uts-publisher
+    depends_on:
+      - aggregator
+    command: ["sleep", "infinity"]
+    restart: unless-stopped
+
+volumes:
+  aggregator-data:
+  
